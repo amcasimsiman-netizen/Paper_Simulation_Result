@@ -1,11 +1,5 @@
 # Farmer-Harris Cell Model Simulation
-
-<<<<<<< HEAD
-Python implementation of the Farmer & Harris discrete cell membrane model studying cell migration, deformation, 
-and clustering due to chemotaxis.
-=======
 Python implementation of the Farmer & Harris discrete cell model studying cell migration, deformation, and clustering due to chemotaxis.
->>>>>>> e53c290aafc581c2edd9e26a2ff8bc5b4e9588cc
 
 ## Requirements
 * Python 3.13 (64-bit)
