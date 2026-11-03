@@ -308,11 +308,7 @@ class Simulation:
         for k, center in enumerate(outer_centers):
             self.all_cells.append(Cell(first_outer_id + k, center, p))
 
-        print(
-            f"{p['CASE_NAME']} initialized: "
-            f"{len(signal_centers)} signal cell + "
-            f"{len(outer_centers)} outer cells."
-        )
+        print(f"{p['CASE_NAME']} initialized: "f"{len(signal_centers)} signal cell + "f"{len(outer_centers)} outer cells.")
 
     def run_one_step(self):
         current_time = self.time_step * self.h
@@ -322,15 +318,9 @@ class Simulation:
         bonds_after = len(self.collision_module.groups)
 
         if bonds_after > bonds_before:
-            print(
-                f"t={current_time:.3f}: "
-                f"{bonds_after - bonds_before} new bonded pairs"
-            )
+            print(f"t={current_time:.3f}: "f"{bonds_after - bonds_before} new bonded pairs")
 
-        forces = [
-            self._calculate_forces(cell, current_time)
-            for cell in self.all_cells
-        ]
+        forces = [self._calculate_forces(cell, current_time) for cell in self.all_cells]
 
         forces_m = np.stack([f[0] for f in forces])
         forces_n = np.stack([f[1] for f in forces])
@@ -338,66 +328,37 @@ class Simulation:
         self._apply_adhesion_forces(forces_m)
 
         for cell in self.all_cells:
-            self._apply_time_stepping(
-                cell,
-                forces_m[cell.id],
-                forces_n[cell.id]
-            )
+            self._apply_time_stepping(cell, forces_m[cell.id], forces_n[cell.id])
             cell.center_of_mass = cell.calculate_center_of_mass()
-
         self.time_step += 1
 
     def _calculate_forces(self, cell, t):
         p = self.params
         m, n = cell.m, cell.n
 
-        effective_beta = (
-            p['BETA'] *
-            p['REACTION_DAMPING_K'] ** np.count_nonzero(cell.bonded)
-        )
+        effective_beta = (p['BETA'] * p['REACTION_DAMPING_K'] ** np.count_nonzero(cell.bonded))
 
         gradient = self.chemical_module.calculate_gradient(m, t, cell.id)
         force_chemotaxis = effective_beta * gradient
         force_chemotaxis[cell.bonded] = 0.0
 
-        force_internal = (
-            p['ALPHA'] *
-            (n - m - cell.original_x_vectors)
-        )
+        force_internal = (p['ALPHA'] * (n - m - cell.original_x_vectors))
 
         spring_prev = m - np.roll(m, 1, axis=0)
         spring_next = np.roll(m, -1, axis=0) - m
         y_next = np.roll(cell.original_y_vectors, -1, axis=0)
 
-        force_surface = p['DELTA'] * (
-            cell.original_y_vectors -
-            spring_prev -
-            y_next +
-            spring_next
-        )
+        force_surface = p['DELTA'] * (cell.original_y_vectors - spring_prev - y_next + spring_next)
 
-        total_m = (
-            force_chemotaxis +
-            force_internal +
-            force_surface
-        )
-
+        total_m = (force_chemotaxis + force_internal + force_surface)
         force_nuc_center = p['ALPHA_N'] * (cell.center_of_mass - n + cell.original_hat_x_vectors)
-
         force_reaction = -force_internal
 
         nuc_spring_prev = n - np.roll(n, 1, axis=0)
         nuc_spring_next = np.roll(n, -1, axis=0) - n
-        hat_y_next = np.roll(cell.original_hat_y_vectors, -1, axis=0
-        )
+        hat_y_next = np.roll(cell.original_hat_y_vectors, -1, axis=0)
 
-        force_nuc_surface = p.get('DELTA_N', p['DELTA']) * (
-            cell.original_hat_y_vectors -
-            nuc_spring_prev -
-            hat_y_next +
-            nuc_spring_next
-        )
-
+        force_nuc_surface = p.get('DELTA_N', p['DELTA']) * (cell.original_hat_y_vectors - nuc_spring_prev - hat_y_next + nuc_spring_next)
         total_n = (force_nuc_center + force_reaction + force_nuc_surface)
 
         return total_m, total_n

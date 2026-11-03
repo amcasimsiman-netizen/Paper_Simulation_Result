@@ -87,8 +87,7 @@ class ChemicalSignalModule:
             effective_time = t - source.signal_start_time + self.params['T_EPSILON']
             dist_sq = (X - source.center_of_mass[0]) ** 2 + (Y - source.center_of_mass[1]) ** 2
             denominator = self.params['MU'] * effective_time
-            total += np.nan_to_num((self.params['A'] / denominator) *
-                                   np.exp(-dist_sq / (4 * denominator)))
+            total += np.nan_to_num((self.params['A'] / denominator) * np.exp(-dist_sq / (4 * denominator)))
         return total
 
 

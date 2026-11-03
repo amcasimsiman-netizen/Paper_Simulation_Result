@@ -73,61 +73,63 @@ class ChemicalSignalModule:
     def add_source(self, cell):
         self.sources.append(cell)
 
-    def calculate_source_gradients(self, positions, t, exclude_id=None):
-        gradients = []
-        mu = self.params['MU']
-        amp = self.params['A']
-        cutoff = self.params.get('SIGNAL_CUTOFF_RADIUS')
-
-        for source in self.sources:
-            if (not source.is_emitting_signal or
-                    t < source.signal_start_time or
-                    source.id == exclude_id):
-                continue
-
-            effective_time = (
-                t - source.signal_start_time + self.params['T_EPSILON']
-            )
-            diff = positions - source.center_of_mass
-            dist_sq = np.sum(diff**2, axis=1)
-
-            coefficient = -amp / (2 * mu**2 * effective_time**2)
-
-            gradient = coefficient * diff * np.exp(-dist_sq / (4 * mu * effective_time))[:, None]
-
-            if cutoff is not None:
-                gradient[dist_sq > cutoff**2] = 0.0
-
-            gradients.append((source.id, gradient))
-
-        return gradients
-
     def calculate_gradient(self, positions, t, exclude_id=None):
         total = np.zeros_like(positions)
-
-        for _, gradient in self.calculate_source_gradients(
-            positions, t, exclude_id
-        ):
+        mu, amp = self.params['MU'], self.params['A']
+        cutoff = self.params.get('SIGNAL_CUTOFF_RADIUS')
+        for source in self.sources:
+            if not source.is_emitting_signal or t < source.signal_start_time or source.id == exclude_id:
+                continue
+            effective_time = t - source.signal_start_time + self.params['T_EPSILON']
+            diff = positions - source.center_of_mass
+            dist_sq = np.sum(diff ** 2, axis=1)
+            coefficient = -amp / (2 * mu ** 2 * effective_time ** 2)
+            gradient = coefficient * diff * np.exp(-dist_sq / (4 * mu * effective_time))[:, None]
+            if cutoff is not None:
+                gradient[dist_sq > cutoff ** 2] = 0.0
             total += gradient
-
         return total
+
+    # def calculate__gradient(self, positions, t, exclude_id=None):
+    #     gradients = []
+    #     mu = self.params['MU']
+    #     amp = self.params['A']
+    #     cutoff = self.params.get('SIGNAL_CUTOFF_RADIUS')
+
+    #     for source in self.sources:
+    #         if (not source.is_emitting_signal or t < source.signal_start_time or source.id == exclude_id):
+    #             continue
+
+    #         effective_time = (t - source.signal_start_time + self.params['T_EPSILON'])
+    #         diff = positions - source.center_of_mass
+    #         dist_sq = np.sum(diff**2, axis=1)
+    #         coefficient = -amp / (2 * mu**2 * effective_time**2)
+    #         gradient = coefficient * diff * np.exp(-dist_sq / (4 * mu * effective_time))[:, None]
+
+    #         if cutoff is not None:
+    #             gradient[dist_sq > cutoff**2] = 0.0
+    #         gradients.append((source.id, gradient))
+    #         total += gradient
+    #     return total
+
+    # def calculate_gradients(self, positions, t, exclude_id=None):
+    #     total = np.zeros_like(positions)
+
+    #     for _, gradient in self.calculate_gradient(positions, t, exclude_id):
+    #         total += gradient
+    #     return total
 
     def calculate_concentration_field(self, X, Y, t):
         total = np.zeros_like(X)
 
         for source in self.sources:
-            if (not source.is_emitting_signal or
-                    t < source.signal_start_time):
+            if (not source.is_emitting_signal or t < source.signal_start_time):
                 continue
-
             effective_time = (t - source.signal_start_time + self.params['T_EPSILON'])
             dist_sq = ((X - source.center_of_mass[0])**2 +(Y - source.center_of_mass[1])**2)
             denominator = self.params['MU'] * effective_time
-
             concentration = (self.params['A'] / denominator *np.exp(-dist_sq / (4 * denominator)))
-
             total += np.nan_to_num(concentration)
-
         return total
 
 
@@ -614,5 +616,5 @@ if __name__ == "__main__":
 
     ani = FuncAnimation(fig, update_animation, frames=FRAMES + 1, interval=50, blit=True, repeat=False)
     writer = FFMpegWriter(fps=20, metadata=dict(artist='Me'), bitrate=1800)
-    ani.save("CASE5_multi_cell_signal (2).mp4", writer=writer)
+    ani.save("sample.mp4", writer=writer)
     print("Done!")
